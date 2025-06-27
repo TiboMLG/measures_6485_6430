@@ -72,41 +72,27 @@ def save_data_and_plot():
 
     # Affichage des données
     try:
-        for i in range(len(current_avg_list)):
-            current_avg_list[i] *= -1
-            current_list[i] *= -1
+        """Affichage des figures."""
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        ax1 = axes[0, 0]
+        ax1.plot(time_list, inverse_6430_measures(current_list), label='Brutes')
+        ax1.plot(time_list, current_list, label='Inversées')
+        ax1.plot(time_list, current_avg_list, label='Filtrées')
+        ax1.set(title="Courant vs Temps", xlabel="Temps (s)", ylabel="Courant (A)")
+        ax1.grid()
+        ax1.legend()
 
-        # Trace de I(t)
-        fig_cur_neg = plt.subplot(2, 2, 1)
-        fig_cur_neg.plot(time_list, current_list, label='Valeurs brutes inversées')
-        fig_cur_neg.set_title("Evolution du courant de fuite en fonction du temps")
-        fig_cur_neg.set_xlabel("Temps (s)")
-        fig_cur_neg.set_ylabel("Courant (A)")
+        ax2 = axes[0, 1]
+        ax2.plot(time_list, resistance_list, label='Résistance')
+        ax2.set(title="Résistance vs Temps", xlabel="Temps (s)", ylabel="Résistance (Ω)")
+        ax2.grid()
 
-        fig_cur_neg = plt.subplot(2, 2, 1)
-        fig_cur_neg.plot(time_list, current_avg_list, label='Valeurs filtrées inversées')
-        fig_cur_neg.set_title("Evolution du courant de fuite en fonction du temps")
-        fig_cur_neg.set_xlabel("Temps (s)")
-        fig_cur_neg.set_ylabel("Courant (A)")
-        fig_cur_neg.grid()
-        fig_cur_neg.legend()
+        ax3 = axes[1, 0]
+        ax3.plot(time_list, resistivity_list, label='Résistivité')
+        ax3.set(title="Résistivité vs Temps", xlabel="Temps (s)", ylabel="Résistivité (Ω·m)")
+        ax3.grid()
 
-        # Trace de R(t)
-        fig_res = plt.subplot(2, 2, 2)
-        fig_res.plot(time_list, resistance_list, color='black', label='Résistance')
-        fig_res.plot("Evolution de la résistance de l'échantillon")
-        fig_res.set_xlabel("Temps (s)")
-        fig_res.set_ylabel("Résistance (Ohm)")
-        fig_res.grid()
-
-        # Trace de Rho(t)
-        fig_rho = plt.subplot(2, 2, 3)
-        fig_rho.plot(time_list, resistivity_list, color='black', label='Résistivité')
-        fig_rho.plot("Evolution de la résistivité de l'échantillon")
-        fig_rho.set_xlabel("Temps (s)")
-        fig_rho.set_ylabel("Résistivité (Ohm.m)")
-        fig_rho.grid()
-
+        fig.tight_layout()
         plt.show()
 
     except Exception as error:
@@ -149,6 +135,7 @@ def signal_handler():
     sys.exit(0)
 
 
+# Filtre moyenneur sur "neighbor" voisins
 def moving_average(data, neighbor):
     N = len(data)
     result = [0.0] * N
@@ -174,6 +161,7 @@ def moving_average(data, neighbor):
     return result
 
 
+# Fonction annulant l'offset moyen avant le temps "delay"
 def avg_offset(data, time, delay):
     sum = 0
     i = 0
@@ -192,13 +180,9 @@ def avg_offset(data, time, delay):
     return data_offset
 
 
+# Inversion du signe de chaque mesure (spécificité Keithley 6430)
 def inverse_6430_measures(data):
-    temp = []
-
-    for i in range(len(data)):
-        temp.append(-data[i])
-
-    return temp
+    return [-x for x in data]
 
 # ------------------------
 #
