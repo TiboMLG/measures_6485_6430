@@ -17,6 +17,8 @@ import sys
 #
 # ---------------------------
 
+duree = 1.2 * 60  # durée en secondes
+
 U = 42  # Différentiel de potentiel appliqué
 
 e = 0.93e-3  # Épaisseur de l'échantillon
@@ -48,7 +50,6 @@ def save_data_and_plot():
     print(f"Enregistrement de {len(time_list)} points de mesure...")
 
     # Calculs
-    current_list = inverse_6430_measures(current_list)
     current_avg_list = moving_average(current_list, 50)
     resistance_list = []
     resistivity_list = []
@@ -73,41 +74,30 @@ def save_data_and_plot():
     # Affichage des données
     try:
 
-        # Trace de I(t)
-        fig_cur_neg = plt.subplot(2, 2, 1)
-        fig_cur_neg.plot(time_list, current_list, label='Valeurs brutes inversées')
-        fig_cur_neg.set_title("Evolution du courant de fuite en fonction du temps")
-        fig_cur_neg.set_xlabel("Temps (s)")
-        fig_cur_neg.set_ylabel("Courant (A)")
+        """Affichage des figures."""
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        ax1 = axes[0, 0]
+        ax1.plot(time_list, current_list, label='Brutes')
+        ax1.plot(time_list, current_avg_list, label='Filtrées')
+        ax1.set(title="Courant vs Temps", xlabel="Temps (s)", ylabel="Courant (A)")
+        ax1.grid()
+        ax1.legend()
 
-        fig_cur_neg = plt.subplot(2, 2, 1)
-        fig_cur_neg.plot(time_list, current_avg_list, label='Valeurs filtrées inversées')
-        fig_cur_neg.set_title("Evolution du courant de fuite en fonction du temps")
-        fig_cur_neg.set_xlabel("Temps (s)")
-        fig_cur_neg.set_ylabel("Courant (A)")
-        fig_cur_neg.grid()
-        fig_cur_neg.legend()
+        ax2 = axes[0, 1]
+        ax2.plot(time_list, resistance_list, label='Résistance')
+        ax2.set(title="Résistance vs Temps", xlabel="Temps (s)", ylabel="Résistance (Ω)")
+        ax2.grid()
 
-        # Trace de R(t)
-        fig_res = plt.subplot(2, 2, 2)
-        fig_res.plot(time_list, resistance_list, color='black', label='Résistance')
-        fig_res.plot("Evolution de la résistance de l'échantillon")
-        fig_res.set_xlabel("Temps (s)")
-        fig_res.set_ylabel("Résistance (Ohm)")
-        fig_res.grid()
+        ax3 = axes[1, 0]
+        ax3.plot(time_list, resistivity_list, label='Résistivité')
+        ax3.set(title="Résistivité vs Temps", xlabel="Temps (s)", ylabel="Résistivité (Ω·m)")
+        ax3.grid()
 
-        # Trace de Rho(t)
-        fig_rho = plt.subplot(2, 2, 3)
-        fig_rho.plot(time_list, resistivity_list, color='black', label='Résistivité')
-        fig_rho.plot("Evolution de la résistivité de l'échantillon")
-        fig_rho.set_xlabel("Temps (s)")
-        fig_rho.set_ylabel("Résistivité (Ohm.m)")
-        fig_rho.grid()
-
+        fig.tight_layout()
         plt.show()
 
     except Exception as error:
-        print(f"Erreur lors de l'affichage : {error}")
+        print(f"Erreur lors de l'affichage des données: {error}")
 
 
 # Gestionnaire de la fermeture de la communication GPIB
@@ -237,14 +227,14 @@ try:
     # inst.write('SENS:CURR:RANG 100E-12')   # Echelle manuelle
 
     inst.write('SENS:CURR:NPLC 1')
-    inst.write('SENS:MED ON')
-    inst.write('SENS:MED:RANK 1')
+    inst.write('MED ON')
+    inst.write('MED:RANK 1')
 
     inst.write('AVER OFF')
-    inst.write('SYST:AZER ON')
+    inst.write('SYST:ZCOR ON')
 
     # Ne renvoyer que le courant
-    inst.write('FORM:ELEM CURR')
+    inst.write('FORM:ELEM READ')
 
     # Configuration du générateur
 
@@ -264,7 +254,6 @@ except Exception as error:
 # -----------------------------
 
 # Paramètres
-duree = 3.2 * 60  # durée en secondes
 t0 = time.time()
 i = 1
 elapsed = 0
@@ -283,7 +272,8 @@ try:
 
             gene_state = 1
 
-        current = float(inst.query('read?'))
+        raw = inst.query('READ?')  # e.g. '-2.83E-10A,+1.27E+03,+5.14E+02'
+        current = float(raw)
 
         time_list.append(elapsed)
         current_list.append(current)
